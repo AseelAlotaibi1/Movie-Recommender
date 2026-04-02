@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CineAI — Find Your Perfect Film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100vh; background: #0a0a0f; color: #f0ece0; font-family: 'Georgia', serif; }
+
+  body {
+    background:
+      radial-gradient(ellipse at 20% 50%, #1a0a2e 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, #0d1a2e 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 100%, #1a0d00 0%, transparent 50%),
+      #0a0a0f;
+    background-attachment: fixed;
+  }
+
+  .grain {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  }
+
+  .film-strip {
+    position: fixed; left: 0; right: 0; z-index: 1; pointer-events: none;
+    display: flex; overflow: hidden; opacity: 0.06;
+  }
+  .film-strip.top { top: 0; }
+  .film-strip.bottom { bottom: 0; }
+  .strip-hole { width: 18px; height: 26px; border-radius: 3px; background: #f0ece0; margin: 3px; flex-shrink: 0; }
+
+  .container {
+    position: relative; z-index: 2;
+    max-width: 760px; margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 52px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 5px; color: rgba(201,168,76,0.7);
+    font-family: 'DM Sans', sans-serif; font-weight: 400;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(38px, 7vw, 68px);
+    font-weight: 900; line-height: 1.05;
+    letter-spacing: -1px; color: #f0ece0;
+  }
+  .title em { color: #c9a84c; font-style: italic; }
+  .subtitle {
+    font-family: 'DM Sans', sans-serif; font-weight: 300;
+    font-size: 16px; color: rgba(240,236,224,0.45);
+    margin-top: 16px; letter-spacing: 0.3px;
+  }
+
+  /* Section labels */
+  .section-label {
+    font-family: 'DM Sans', sans-serif; font-size: 11px;
+    letter-spacing: 3px; color: rgba(240,236,224,0.4);
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .section { margin-bottom: 32px; }
+
+  /* Genre pills */
+  .genres { display: flex; flex-wrap: wrap; gap: 8px; }
+  .genre-pill {
+    cursor: pointer; padding: 8px 18px; border-radius: 999px;
+    border: 1px solid rgba(240,236,224,0.2);
+    background: rgba(240,236,224,0.04);
+    color: rgba(240,236,224,0.6);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: all 0.2s; user-select: none;
+  }
+  .genre-pill:hover { border-color: rgba(240,236,224,0.4); color: rgba(240,236,224,0.9); background: rgba(240,236,224,0.08); }
+  .genre-pill.active { border-color: #c9a84c; background: rgba(201,168,76,0.15); color: #c9a84c; }
+
+  /* Mood buttons */
+  .moods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mood-btn {
+    cursor: pointer; padding: 10px 16px; border-radius: 12px;
+    border: 1px solid rgba(240,236,224,0.15);
+    background: rgba(240,236,224,0.03);
+    color: rgba(240,236,224,0.65);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: all 0.2s; text-align: left;
+  }
+  .mood-btn:hover { border-color: rgba(240,236,224,0.3); background: rgba(240,236,224,0.06); color: rgba(240,236,224,0.9); }
+  .mood-btn.active { border-color: #8b5cf6; background: rgba(139,92,246,0.15); color: #c4b5fd; }
+
+  /* Textarea */
+  .text-input {
+    width: 100%; background: rgba(240,236,224,0.05);
+    border: 1px solid rgba(240,236,224,0.15); border-radius: 12px;
+    padding: 12px 16px; color: #f0ece0;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    resize: none; outline: none; transition: border 0.2s;
+  }
+  .text-input:focus { border-color: rgba(240,236,224,0.35); }
+  .text-input::placeholder { color: rgba(240,236,224,0.3); }
+
+  /* CTA button */
+  .cta-btn {
+    cursor: pointer; padding: 14px 36px; border-radius: 999px; border: none;
+    background: linear-gradient(135deg, #c9a84c, #e8c96a);
+    color: #0a0a0f; font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 500; letter-spacing: 0.5px; transition: all 0.25s;
+  }
+  .cta-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(201,168,76,0.35); }
+  .cta-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .cta-wrap { text-align: center; margin-top: 40px; }
+
+  /* Spinner */
+  .spinner-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid rgba(201,168,76,0.2);
+    border-top-color: #c9a84c; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .spinner-text { font-family: 'DM Sans', sans-serif; font-size: 14px; color: rgba(240,236,224,0.4); animation: pulse 1.5s ease infinite; }
+
+  /* Error */
+  .error-msg { color: #f87171; font-family: 'DM Sans', sans-serif; font-size: 14px; text-align: center; margin-bottom: 20px; }
+
+  /* Results header */
+  .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+  .results-title-label { font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 3px; color: rgba(240,236,224,0.4); text-transform: uppercase; margin-bottom: 6px; }
+  .results-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: #f0ece0; }
+  .back-btn {
+    cursor: pointer; background: none;
+    border: 1px solid rgba(240,236,224,0.2); border-radius: 999px;
+    color: rgba(240,236,224,0.5); padding: 7px 18px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; transition: all 0.2s;
+  }
+  .back-btn:hover { border-color: rgba(240,236,224,0.4); color: rgba(240,236,224,0.8); }
+
+  /* Movie cards */
+  .movies-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 40px; }
+  .movie-card {
+    cursor: pointer; border: 1px solid rgba(240,236,224,0.08);
+    border-radius: 16px; background: rgba(240,236,224,0.03);
+    transition: all 0.3s; overflow: hidden;
+  }
+  .movie-card:hover { border-color: rgba(201,168,76,0.3); background: rgba(240,236,224,0.05); transform: translateY(-3px); }
+  .movie-card.open { border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.06); }
+  .card-main { padding: 18px 22px; display: flex; align-items: center; gap: 16px; }
+  .card-emoji { font-size: 28px; flex-shrink: 0; }
+  .card-info { flex: 1; min-width: 0; }
+  .card-title-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: #f0ece0; }
+  .card-year { font-family: 'DM Sans', sans-serif; font-size: 13px; color: rgba(240,236,224,0.4); }
+  .card-meta { font-family: 'DM Sans', sans-serif; font-size: 13px; color: rgba(240,236,224,0.45); margin-top: 2px; }
+  .card-rating { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500; color: #c9a84c; flex-shrink: 0; }
+  .card-detail { padding: 0 22px 20px; border-top: 1px solid rgba(240,236,224,0.06); padding-top: 16px; display: none; }
+  .card-detail.visible { display: block; }
+  .card-tagline { font-family: 'Playfair Display', serif; font-style: italic; font-size: 15px; color: rgba(240,236,224,0.5); margin-bottom: 12px; }
+  .card-why { font-family: 'DM Sans', sans-serif; font-size: 14px; color: rgba(240,236,224,0.7); line-height: 1.65; }
+
+  /* Chat */
+  .chat-section { border-top: 1px solid rgba(240,236,224,0.08); padding-top: 32px; }
+  .chat-messages { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+  .chat-bubble { padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #f0ece0; line-height: 1.6; }
+  .chat-bubble.user { background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.25); border-radius: 16px 16px 4px 16px; align-self: flex-end; max-width: 75%; }
+  .chat-bubble.ai { background: rgba(240,236,224,0.05); border: 1px solid rgba(240,236,224,0.1); border-radius: 16px 16px 16px 4px; align-self: flex-start; max-width: 80%; }
+  .chat-input-row { display: flex; gap: 10px; }
+  .chat-input {
+    flex: 1; background: rgba(240,236,224,0.05);
+    border: 1px solid rgba(240,236,224,0.15); border-radius: 999px;
+    padding: 10px 18px; color: #f0ece0;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border 0.2s;
+  }
+  .chat-input:focus { border-color: rgba(240,236,224,0.35); }
+  .chat-input::placeholder { color: rgba(240,236,224,0.3); }
+  .send-btn {
+    cursor: pointer; background: #c9a84c; border: none; border-radius: 999px;
+    color: #0a0a0f; padding: 9px 20px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.2s;
+  }
+  .send-btn:hover:not(:disabled) { background: #e8c96a; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .dots { display: flex; gap: 5px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(240,236,224,0.4); }
+  .dot:nth-child(1) { animation: pulse 1.2s 0s ease infinite; }
+  .dot:nth-child(2) { animation: pulse 1.2s 0.2s ease infinite; }
+  .dot:nth-child(3) { animation: pulse 1.2s 0.4s ease infinite; }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+  .fade-up { animation: fadeUp 0.5s ease forwards; }
+
+  /* Sections visibility */
+  #home-screen { display: block; }
+  #results-screen { display: none; }
+
+  @media (max-width: 480px) {
+    .moods { grid-template-columns: 1fr; }
+    .title { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="film-strip top" id="strip-top"></div>
+<div class="film-strip bottom" id="strip-bottom"></div>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header fade-up">
+    <div class="eyebrow">Curated Cinema</div>
+    <h1 class="title">Find Your<br><em>Perfect Film</em></h1>
+    <p class="subtitle">AI-powered recommendations tailored to your taste</p>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen">
+    <!-- Genre -->
+    <div class="section">
+      <div class="section-label">Genre</div>
+      <div class="genres" id="genres-container"></div>
+    </div>
+
+    <!-- Mood -->
+    <div class="section">
+      <div class="section-label">Mood</div>
+      <div class="moods" id="moods-container"></div>
+    </div>
+
+    <!-- Free text -->
+    <div class="section" style="margin-bottom:0;">
+      <div class="section-label">Or describe what you're looking for</div>
+      <textarea class="text-input" id="free-text" rows="3" placeholder="e.g. 'A slow burn mystery with a twist ending, like Parasite but set in the 80s...'"></textarea>
+    </div>
+
+    <div id="error-msg" class="error-msg" style="display:none;margin-top:16px;"></div>
+
+    <div class="cta-wrap">
+      <div id="spinner" class="spinner-wrap" style="display:none;">
+        <div class="spinner"></div>
+        <p class="spinner-text">Consulting our cinephile AI...</p>
+      </div>
+      <button class="cta-btn" id="get-btn" disabled onclick="getRecommendations()">Get Recommendations →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen">
+    <div class="results-header fade-up">
+      <div>
+        <div class="results-title-label">Your Picks</div>
+        <h2 class="results-title">6 Films For You</h2>
+      </div>
+      <button class="back-btn" onclick="reset()">← Start over</button>
+    </div>
+
+    <div class="movies-list" id="movies-list"></div>
+
+    <!-- Chat -->
+    <div class="chat-section">
+      <div class="section-label">Ask the Film Expert</div>
+      <div class="chat-messages" id="chat-messages" style="display:none;"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Ask about any of these films..." onkeydown="if(event.key==='Enter') sendChat()" />
+        <button class="send-btn" id="send-btn" onclick="sendChat()" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const GENRES = ["Action","Comedy","Drama","Horror","Sci-Fi","Romance","Thriller","Animation","Documentary","Fantasy"];
+  const MOODS = ["😂 Make me laugh","😢 Make me cry","😱 Scare me","🤔 Make me think","🔥 Keep me on edge","✨ Inspire me","💫 Blow my mind","❤️ Warm my heart"];
+
+  let selectedGenres = [];
+  let selectedMood = "";
+  let movies = [];
+  let chatHistory = [];
+  let chatLoading = false;
+  let expandedIdx = null;
+
+  // Build film strips
+  function buildStrips() {
+    ['strip-top','strip-bottom'].forEach(id => {
+      const el = document.getElementById(id);
+      for (let i = 0; i < 50; i++) {
+        const hole = document.createElement('div');
+        hole.className = 'strip-hole';
+        el.appendChild(hole);
+      }
+    });
+  }
+
+  // Build genre pills
+  function buildGenres() {
+    const container = document.getElementById('genres-container');
+    GENRES.forEach(g => {
+      const btn = document.createElement('button');
+      btn.className = 'genre-pill';
+      btn.textContent = g;
+      btn.onclick = () => toggleGenre(g, btn);
+      container.appendChild(btn);
+    });
+  }
+
+  // Build mood buttons
+  function buildMoods() {
+    const container = document.getElementById('moods-container');
+    MOODS.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'mood-btn';
+      btn.textContent = m;
+      btn.onclick = () => toggleMood(m, btn);
+      container.appendChild(btn);
+    });
+  }
+
+  function toggleGenre(g, btn) {
+    if (selectedGenres.includes(g)) {
+      selectedGenres = selectedGenres.filter(x => x !== g);
+      btn.classList.remove('active');
+    } else {
+      selectedGenres.push(g);
+      btn.classList.add('active');
+    }
+    updateGetBtn();
+  }
+
+  function toggleMood(m, btn) {
+    if (selectedMood === m) {
+      selectedMood = "";
+      btn.classList.remove('active');
+    } else {
+      if (selectedMood) {
+        document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+      }
+      selectedMood = m;
+      btn.classList.add('active');
+    }
+    updateGetBtn();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    buildStrips();
+    buildGenres();
+    buildMoods();
+    document.getElementById('free-text').addEventListener('input', updateGetBtn);
+    document.getElementById('chat-input').addEventListener('input', () => {
+      document.getElementById('send-btn').disabled = !document.getElementById('chat-input').value.trim() || chatLoading;
+    });
+  });
+
+  function updateGetBtn() {
+    const hasText = document.getElementById('free-text').value.trim().length > 0;
+    document.getElementById('get-btn').disabled = !selectedMood && selectedGenres.length === 0 && !hasText;
+  }
+
+  async function getRecommendations() {
+    const freeText = document.getElementById('free-text').value.trim();
+    if (!selectedMood && selectedGenres.length === 0 && !freeText) return;
+
+    document.getElementById('get-btn').style.display = 'none';
+    document.getElementById('spinner').style.display = 'flex';
+    document.getElementById('error-msg').style.display = 'none';
+
+    const prompt = `You are a world-class cinephile and film critic. Recommend exactly 6 movies based on:
+${selectedGenres.length > 0 ? `Genres: ${selectedGenres.join(", ")}` : ""}
+${selectedMood ? `Mood: ${selectedMood}` : ""}
+${freeText ? `User's request: "${freeText}"` : ""}
+
+Respond ONLY with a valid JSON array (no markdown, no backticks, no explanation) of 6 movie objects with these exact fields:
+[
+  {
+    "title": "Movie Title",
+    "year": 1994,
+    "director": "Director Name",
+    "rating": 8.9,
+    "genre": "Genre",
+    "runtime": "2h 22m",
+    "tagline": "One punchy tagline",
+    "why": "2-3 sentences about why this matches their request",
+    "emoji": "🎬"
+  }
+]`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const text = (data.content || []).map(b => b.text || "").join("");
+      const clean = text.replace(/```json|```/g, "").trim();
+      movies = JSON.parse(clean);
+      chatHistory = [];
+      showResults();
+    } catch(e) {
+      document.getElementById('error-msg').textContent = "Couldn't fetch recommendations. Try again!";
+      document.getElementById('error-msg').style.display = 'block';
+      document.getElementById('get-btn').style.display = 'inline-block';
+    }
+
+    document.getElementById('spinner').style.display = 'none';
+  }
+
+  function showResults() {
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('results-screen').style.display = 'block';
+    expandedIdx = null;
+
+    const list = document.getElementById('movies-list');
+    list.innerHTML = '';
+    movies.forEach((m, i) => {
+      const card = document.createElement('div');
+      card.className = 'movie-card fade-up';
+      card.style.animationDelay = `${i * 0.07}s`;
+      card.innerHTML = `
+        <div class="card-main">
+          <div class="card-emoji">${m.emoji || '🎬'}</div>
+          <div class="card-info">
+            <div class="card-title-row">
+              <span class="card-title">${m.title}</span>
+              <span class="card-year">${m.year}</span>
+            </div>
+            <div class="card-meta">${m.director} · ${m.runtime} · ${m.genre}</div>
+          </div>
+          <div class="card-rating">★ ${m.rating}</div>
+        </div>
+        <div class="card-detail" id="detail-${i}">
+          <p class="card-tagline">"${m.tagline}"</p>
+          <p class="card-why">${m.why}</p>
+        </div>
+      `;
+      card.onclick = () => toggleCard(i, card);
+      list.appendChild(card);
+    });
+
+    // Reset chat
+    document.getElementById('chat-messages').style.display = 'none';
+    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('chat-input').value = '';
+    document.getElementById('send-btn').disabled = true;
+  }
+
+  function toggleCard(i, card) {
+    const detail = document.getElementById(`detail-${i}`);
+    if (expandedIdx === i) {
+      detail.classList.remove('visible');
+      card.classList.remove('open');
+      expandedIdx = null;
+    } else {
+      if (expandedIdx !== null) {
+        document.getElementById(`detail-${expandedIdx}`).classList.remove('visible');
+        document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('open'));
+      }
+      detail.classList.add('visible');
+      card.classList.add('open');
+      expandedIdx = i;
+    }
+  }
+
+  function reset() {
+    selectedGenres = [];
+    selectedMood = "";
+    movies = [];
+    chatHistory = [];
+    expandedIdx = null;
+
+    document.querySelectorAll('.genre-pill').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('free-text').value = '';
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('get-btn').style.display = 'inline-block';
+    document.getElementById('get-btn').disabled = true;
+    document.getElementById('spinner').style.display = 'none';
+
+    document.getElementById('results-screen').style.display = 'none';
+    document.getElementById('home-screen').style.display = 'block';
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg || chatLoading) return;
+    input.value = '';
+    document.getElementById('send-btn').disabled = true;
+    chatLoading = true;
+
+    const chatMsgs = document.getElementById('chat-messages');
+    chatMsgs.style.display = 'flex';
+    chatMsgs.style.flexDirection = 'column';
+
+    chatHistory.push({ role: "user", content: msg });
+
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble user';
+    userBubble.textContent = msg;
+    chatMsgs.appendChild(userBubble);
+
+    const loadingBubble = document.createElement('div');
+    loadingBubble.className = 'chat-bubble ai';
+    loadingBubble.innerHTML = '<div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+    chatMsgs.appendChild(loadingBubble);
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+    try {
+      const systemPrompt = `You are a passionate film expert. The user just received these movie recommendations: ${JSON.stringify(movies.map(m => m.title))}. Help them explore cinema — answer questions, give more details, suggest alternatives. Be enthusiastic and concise.`;
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 500,
+          system: systemPrompt,
+          messages: chatHistory
+        })
+      });
+      const data = await res.json();
+      const reply = (data.content || []).map(b => b.text || "").join("") || "Sorry, I couldn't respond.";
+      chatHistory.push({ role: "assistant", content: reply });
+      loadingBubble.innerHTML = '';
+      loadingBubble.textContent = reply;
+    } catch {
+      loadingBubble.textContent = "Sorry, something went wrong.";
+    }
+
+    chatLoading = false;
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+    document.getElementById('send-btn').disabled = false;
+  }
+</script>
+</body>
+</html>
